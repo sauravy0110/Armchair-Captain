@@ -1,50 +1,138 @@
-# Armchair Captain — "Aap hote toh?"
+# 🏏 Armchair Captain — Aap hote toh?
 
-A simulated four-over T20 chase (fictional teams and players). You captain the bowling side: pick a bowler and a strategy, lock the call, see a rule-based benchmark captain's pick, watch a seeded ball-by-ball over, and get three separate scores plus a short AI tactical explanation.
+**Every fan has a captain inside.**
 
-## Run
+Armchair Captain is an AI-powered cricket captaincy simulator built around a fictional four-over T20 chase. Choose your bowler, select ATTACK or DEFEND, lock your decision, and compare your captaincy against a rule-based benchmark.
+
+Make four decisions and discover your **Captaincy IQ**.
+
+## 🎮 Key Features
+
+- **Interactive T20 Simulation:** Captain the bowling side in a four-over chase.
+- **Bowler & Strategy Selection:** Choose from available bowlers and ATTACK or DEFEND.
+- **Ball-by-Ball Simulation:** Watch seeded match outcomes unfold.
+- **Benchmark Captain:** Compare your decisions against a deterministic captaincy heuristic.
+- **Three-Part Scoring:** Separate tactical judgement, execution outcome and captain comparison.
+- **AI Tactical Explanations:** Get explanations in English, Hinglish or Beginner English.
+- **Captaincy IQ & Achievements:** Track your performance and unlock achievements.
+- **Persistent Sessions:** Resume matches using deterministic replay and browser storage.
+
+## 🧠 Scoring System
+
+Each over is scored out of 100:
+
+| Category | Score | Measures |
+|---|---:|---|
+| Tactical Judgement | 50 | Quality of your decision based on pre-over information |
+| Execution Outcome | 30 | How your selected option performed in the simulation |
+| Captain Comparison | 20 | Your tactical utility compared with the benchmark |
+| **Total** | **100** | **Overall over performance** |
+
+Your final **Captaincy IQ** is the average of your four over scores.
+
+Separating these scores helps distinguish a good decision from a lucky or unlucky outcome.
+
+## 🏗️ Tech Stack
+
+- **Frontend:** Next.js 14, React, TypeScript
+- **Styling:** Tailwind CSS
+- **Validation:** Zod
+- **Simulation:** TypeScript, seeded random number generation
+- **AI:** OpenRouter API
+- **Persistence:** Browser localStorage
+- **Testing:** Project test suite
+- **Deployment:** Vercel
+
+## ⚙️ Engineering Highlights
+
+**Deterministic Simulation:** Both the fan and benchmark branches start from the same pre-over state and use the same seed. Each ball consumes exactly two random draws, keeping branch outcomes aligned.
+
+**Independent Scoring:** Tactical judgement uses expected runs, execution scoring uses simulated outcomes, and captain comparison uses tactical utility incorporating expected runs and wicket probability.
+
+**Rule-Based Benchmark:** The benchmark captain follows a deterministic heuristic based on bowling options, batter matchups and required run rate. It is not an optimiser, so the player can outperform it.
+
+**AI Explainer:** The server-side API sends validated simulation data to OpenRouter. AI explains decisions but never calculates scores or match outcomes.
+
+**Deterministic Fallback:** If the API key is missing or an AI request fails, a built-in fallback generates explanations and gameplay continues.
+
+**Persistent Replay:** Only the seed, decisions and game progress are stored. Match state is reconstructed through deterministic replay and validated before resuming.
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js
+- npm
+
+### Installation
+
 ```bash
+git clone https://github.com/sauravy0110/Armchair-Captain.git
+cd Armchair-Captain
 npm install
-cp .env.example .env.local   # optional: add OPENROUTER_API_KEY
-npm run dev                  # http://localhost:3000
-npm test && npm run typecheck && npm run lint && npm run build
-npm run calibrate            # prints IQ distributions for 4 simulated personas
 ```
-### AI setup (OpenRouter, optional)
-1. Create an account at https://openrouter.ai and create a key under *Keys*.
-2. Put it in `.env.local`: `OPENROUTER_API_KEY=...`. Optional: `OPENROUTER_MODEL` (default `nvidia/nemotron-3-ultra-550b-a55b`), `OPENROUTER_SITE_URL` (your site URL, sent as `HTTP-Referer`), `AI_RATE_LIMIT=12`, `AI_DAILY_CAP=500`, `AI_TIMEOUT_MS` (default 9000).
-3. These are server-only variables; never use a `NEXT_PUBLIC_` prefix.
 
-Without a key, or on any AI failure, a deterministic fallback explainer is used and the game stays fully playable. Availability, quotas and rate limits of the free model are controlled by OpenRouter and can change or be exhausted at any time; the app then silently uses the fallback (the UI labels which one answered). The model's output budget is capped at 350 tokens; if a reasoning-heavy model spends it before emitting JSON, the fallback answers.
+Create your environment file:
 
-## Deploy (Vercel)
-Push to GitHub, import the repo in Vercel (Next.js is auto-detected), add `OPENROUTER_API_KEY` (and optionally `OPENROUTER_MODEL`, `OPENROUTER_SITE_URL`, `AI_RATE_LIMIT`, `AI_DAILY_CAP`) under Environment Variables, deploy. The app is fully playable without the key.
+```bash
+cp .env.example .env.local
+```
 
-## Architecture
-- `lib/simulation/` pure, React-free engine: `model.ts` (expected runs / wicket probability, tunable `COEF`), `engine.ts` (seeded over simulation, legality rules), `captain-policy.ts`, `random.ts` (mulberry32).
-- `lib/scoring/` scoring, branch resolution, replay, achievements, calibration personas.
-- `lib/ai/` prompt, payload validation (zod), fallback explainer. `app/api/analyze-decision/route.ts` calls OpenRouter server-side only.
-- `components/Game.tsx` UI state machine: decide → reveal → sim → analysis → final.
-- Persistence: localStorage stores only `seed + decisions + step`; match state is rebuilt by deterministic replay. On load the whole structure is validated with zod (decisions, receipts, language, step, AI text) and test-replayed; anything malformed or illegal is discarded and the app starts fresh.
+Add your OpenRouter API key:
 
-## Simulation assumptions (fictional, tunable, not validated cricket data)
-`expectedRuns = clamp(base + batter aggression + handedness matchup + phase + strategy + pressure)`, weighting striker 60% / non-striker 40%. ATTACK adds wicket probability and variance; it costs runs when the chase is comfortable and saves them when the required rate is 8+. DEFEND is the reverse. Ball outcomes (0,1,2,3,4,6,W) come from a base distribution reshaped by the bowler's `variation` (more dots and boundaries, fewer 1s/2s) and then tilted so the mean equals the expected runs: variation widens spread without changing expected runs. Strike rotates on odd runs and at over end. Each bowler bowls max 2 overs, never consecutively; at least two legal bowlers always exist (tested).
-Both branches (fan and benchmark) start from the same pre-over state and the same per-over seed. Only the fan branch carries forward.
+```env
+OPENROUTER_API_KEY=your_api_key
+OPENROUTER_MODEL=nvidia/nemotron-3-ultra-550b-a55b:free
+AI_TIMEOUT_MS=45000
+```
 
-## Scoring (100 per over)
-- Tactical (50) = `50 × (1 − (fanE − bestE) / (worstE − bestE))`, clamped; 50 if all equal. Options are all legal bowler × strategy pairs. Pre-over info only.
-- Execution (30) = `30 × clamp(0.65 + (E − runs)/14 + 0.09 × (min(wkts,3) − expectedWkts), 0, 1)`. Uses the simulated result.
-- Captain comparison (20) = `20 × clamp(0.5 + (capU − fanU)/(2 × uRange), 0, 1)`; 10 if range is 0. Pre-over info only. `U = expectedRuns − wicketValue × 6 × wicketProb` (wicketValue 1 / 2.2 / 4 for required rate <6.5 / mid / >9). Tactical Judgement still uses expected runs alone; the comparison uses U so it rewards the same trade-off (economy vs breakthroughs) the benchmark is built around. The benchmark itself is a rule-based heuristic (death specialist late, spin vs aggressive right-hander, economical Dev otherwise; ATTACK at required rate 8+), not an optimiser, so a fan can beat it.
-Captaincy IQ = mean of the over totals. Calibration (`npm run calibrate`, n=400, fixed seeds, same as `tests/calibration.test.ts`): random ≈ 49 (target 40–55), average ≈ 66 (55–75), strong ≈ 77 (75–90), greedy ≈ 80.2 (above 80, a very narrow margin). "Greedy" always takes the lowest immediate expected-runs option; it is a one-over optimiser, NOT a four-over optimal player (no look-ahead on bowler quotas). Execution-score constants were tuned so these ranges hold, so treat the targets as soft design goals.
+AI configuration is optional. The game remains fully playable without an API key.
 
-## AI
-The route validates a structured payload built from engine output and asks the model for four sections (your call, the trade-off, what happened, next over) in English, Hinglish or beginner English. The model never computes scores. On any error, timeout or missing key, a template fallback answers; the UI labels which one was used.
+Start the development server:
 
-## Common random numbers
-Every ball consumes exactly two draws (wicket roll, run roll) whether or not a wicket falls, so the fan and benchmark branches stay aligned ball-for-ball on the same seed.
+```bash
+npm run dev
+```
 
-## Public endpoint hardening
-`/api/analyze-decision` uses a strict zod schema (unknown keys rejected, bounded numbers, names limited to the fictional roster, score strings pattern-checked), a 4 KB body cap, `max_tokens` 350 and validated model output. Rate limits (`AI_RATE_LIMIT` per client per 10 min, `AI_DAILY_CAP` global per 24 h) are only consumed when the OpenRouter key would be used; over the limit, or on any failure, the deterministic fallback answers. The limiter is in-memory and per server instance, so on serverless it is best-effort: use a shared store (Upstash/Vercel KV) or WAF rules for hard guarantees. Client IP comes from `x-forwarded-for`, which a client can spoof when not behind a trusted proxy.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Limitations
-Fictional model, not validated; the captain is a heuristic, not a real captain; receipts use client time and local storage and are not tamper-proof; the share action shares text only (no image export).
+### Run Checks
+
+```bash
+npm test
+npm run typecheck
+npm run lint
+npm run build
+```
+
+### Calibration
+
+```bash
+npm run calibrate
+```
+
+Evaluates four simulated player personas using fixed seeds to check the intended Captaincy IQ distributions.
+
+## 🌐 Deployment
+
+The application can be deployed on [Vercel](https://vercel.com).
+
+1. Import the GitHub repository into Vercel.
+2. Configure the required environment variables.
+3. Deploy the Next.js application.
+
+The application remains playable without OpenRouter credentials.
+
+## ⚠️ Limitations
+
+- Uses fictional players, teams and simulation coefficients, not validated cricket data.
+- The benchmark captain is a heuristic, not an optimal or real-world captain.
+- Captaincy IQ is a prototype metric, not a measure of actual cricket expertise.
+- Match progress is stored locally and is not tamper-proof.
+- AI availability depends on OpenRouter and its model providers.
+- Sharing currently supports text, not image export.
+
+---
+
+**Aap hote toh?**
+
+*Every over is a captaincy test.*
