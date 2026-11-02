@@ -1,0 +1,9 @@
+@tailwind base; @tailwind components; @tailwind utilities;
+html { background: #121513; color: #fff; }
+body { font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; min-height: 100vh;
+  background: radial-gradient(900px 400px at 50% -100px, #1f4d2e66, transparent), #121513; }
+.display { font-family: "Arial Narrow", "Avenir Next Condensed", Impact, sans-serif; letter-spacing: -0.01em; }
+button:focus-visible { outline: 2px solid #b6ff3b; outline-offset: 2px; }
+@keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.96) } to { opacity: 1; transform: none } }
+.pop { animation: pop .3s ease-out; }
+@media (prefers-reduced-motion: reduce) { .pop { animation: none } }
